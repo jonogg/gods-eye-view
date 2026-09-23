@@ -39,7 +39,7 @@ test('catalogs construct distinct layers and classification from their supplied 
     signal: b.signal,
     surface: fixtureSurface(b.signal),
   });
-  assert.equal(first.layers.length, 27);
+  assert.equal(first.layers.length, 28);
   assert.notEqual(first.weatherClock, second.weatherClock);
   await first.weatherClock.setTarget('2026-09-21T12:00:00.000Z');
   assert.match(
@@ -56,7 +56,15 @@ test('catalogs construct distinct layers and classification from their supplied 
   const order = first.layers.map(({ id }) => id);
   assert.deepEqual(
     order.slice(order.indexOf('traffic'), order.indexOf('directions') + 1),
-    ['traffic', 'cctv', 'radio', 'transit', 'bikeshare', 'directions'],
+    [
+      'traffic',
+      'nsw-hazards',
+      'cctv',
+      'radio',
+      'transit',
+      'bikeshare',
+      'directions',
+    ],
   );
   assert.ok(first.get('bhote-koshi-2026'));
   assert.ok(first.get('bhote-koshi-locator'));

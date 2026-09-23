@@ -23,6 +23,7 @@ import { keySetupEndpoint } from '../standalone/key-setup.js';
 import { weatherProxy } from './weather.js';
 import { cycloneProxy } from './cyclones.js';
 import { windProxy } from './wind.js';
+import { nswHazardsProxy } from './nswHazards.js';
 
 /** Construct the local provider plugins in their established order. */
 function localProviderPlugins() {
@@ -51,6 +52,7 @@ function localProviderPlugins() {
     windProxy(),
     weatherProxy(),
     cycloneProxy(),
+    nswHazardsProxy(),
     keySetupEndpoint(),
   ];
 }
@@ -84,6 +86,11 @@ export { resolveOverpassPreflight } from './overpass/cache.js';
 export { overpassPayloadIsData } from './overpass/transport.js';
 export { fetchOverpassPayload } from './overpass/transport.js';
 export { resolveOverpassEndpoints } from './overpass/transport.js';
+export {
+  decodeNswPolyline,
+  normalizeNswHazard,
+  normalizeNswHazardFeed,
+} from './nswHazards.js';
 export { openAiRealtimeProxy } from './openai.js';
 export { MILITARY_INSTALLATION_ELEMENT_CAP } from './military-installations/constants.js';
 export { quantizeMilitaryInstallationBox } from './military-installations/query.js';

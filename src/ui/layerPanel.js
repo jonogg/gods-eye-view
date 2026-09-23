@@ -25,6 +25,7 @@ const PANEL_GROUPS = [
       'military',
       'ais-live-vessels',
       'traffic',
+      'nsw-hazards',
       'transit',
       'bikeshare',
     ],
@@ -75,6 +76,7 @@ const PANEL_LABELS = {
   'alpr-cameras': 'Mapped ALPR Cameras',
   'local-datacenters': 'Data Centers',
   'local-firms': 'Active Fires',
+  'nsw-hazards': 'NSW Live Traffic',
 };
 
 function panelLabel(layer) {

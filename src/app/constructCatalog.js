@@ -1,6 +1,7 @@
 import { createWeatherClock } from '../layers/weather/clock.js';
 import { createWeatherLayer } from '../layers/weather/index.js';
 import { createCyclonesLayer } from '../layers/cyclones/index.js';
+import { createNswHazardsLayer } from '../layers/nswHazards/index.js';
 import { createWindLayer } from '../layers/wind/index.js';
 import { createLayerCatalog } from './catalog.js';
 import { LAYER_STATE_REGISTRY } from '../data/layerState.js';
@@ -51,6 +52,7 @@ const SOURCE_METHODS = Object.freeze({
   weather: ['getSnapshot'],
   cyclones: ['getSnapshot'],
   earthquakes: ['getSnapshot'],
+  nswHazards: ['getSnapshot'],
   cables: ['fetch'],
 });
 
@@ -125,6 +127,7 @@ export function createApplicationCatalog({
         satellites,
         createApplicationLaunches({ source: sources.launches, satellites }),
         createApplicationTraffic({ source: sources.traffic }),
+        createNswHazardsLayer({ source: sources.nswHazards }),
         createApplicationCctv({ surface, source: sources.cctv }),
         createApplicationRadio({ surface, source: sources.radio }),
         createApplicationTransit({ surface, source: sources.transit }),
