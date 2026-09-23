@@ -155,4 +155,83 @@ async function fetchOverpassPayload(
   throw lastError || new Error('All Overpass upstreams failed');
 }
 
-export { overpassPayloadIsData, fetchOverpassPayload };
+/**
+ * Parse an `s,w,n,e` bounding-box string into numbers, or null when malformed.
+ * @param {string|undefined} value Comma-separated south,west,north,east degrees.
+ * @returns {{s:number,w:number,n:number,e:number}|null}
+ */
+function parseOverpassLocalBbox(value) {
+  const parts = String(value || '')
+    .split(',')
+    .map((part) => Number(part.trim()));
+  if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) return null;
+  const [s, w, n, e] = parts;
+  if (s >= n || w >= e) return null;
+  return { s, w, n, e };
+}
+
+/**
+ * Every coordinate a query is spatially bounded by: bbox corners, `around`
+ * centres and `is_in` points, as [lat, lon] pairs.
+ * @param {string} query Decoded Overpass QL.
+ * @returns {Array<[number, number]>}
+ */
+function overpassQueryPoints(query) {
+  const points = [];
+  const num = '(-?\\d+(?:\\.\\d+)?)';
+  const sep = '\\s*,\\s*';
+  for (const m of query.matchAll(
+    new RegExp(`\\(\\s*${num}${sep}${num}${sep}${num}${sep}${num}\\s*\\)`, 'g'),
+  )) {
+    points.push([Number(m[1]), Number(m[2])], [Number(m[3]), Number(m[4])]);
+  }
+  for (const m of query.matchAll(
+    new RegExp(`around:\\s*[\\d.]+${sep}${num}${sep}${num}`, 'g'),
+  )) {
+    points.push([Number(m[1]), Number(m[2])]);
+  }
+  for (const m of query.matchAll(
+    new RegExp(`is_in\\s*\\(\\s*${num}${sep}${num}\\s*\\)`, 'g'),
+  )) {
+    points.push([Number(m[1]), Number(m[2])]);
+  }
+  return points;
+}
+
+/**
+ * Upstream order for one query. A self-hosted regional instance
+ * (`OVERPASS_LOCAL_URL`, covering `OVERPASS_LOCAL_BBOX` = `s,w,n,e`) is tried
+ * first only when every coordinate the query is bounded by lies inside that
+ * region: a regional extract answers an out-of-region query with an empty
+ * success, which would never fall through to the public mirrors. Queries with
+ * no parseable coordinate keep the public order. The public mirrors always
+ * remain as fallbacks.
+ * @param {string} body URL-encoded `data=` Overpass request body.
+ * @param {object} [env] Environment to read (defaults to process.env).
+ * @returns {string[]} Ordered endpoint list.
+ */
+function resolveOverpassEndpoints(body, env = process.env) {
+  const localUrl = String(env.OVERPASS_LOCAL_URL || '').trim();
+  const bbox = parseOverpassLocalBbox(env.OVERPASS_LOCAL_BBOX);
+  if (!localUrl || !bbox) return OVERPASS_UPSTREAMS;
+  let query = '';
+  try {
+    query = new URLSearchParams(body).get('data') || '';
+  } catch {
+    return OVERPASS_UPSTREAMS;
+  }
+  const points = overpassQueryPoints(query);
+  const inside =
+    points.length > 0 &&
+    points.every(
+      ([lat, lon]) =>
+        lat >= bbox.s && lat <= bbox.n && lon >= bbox.w && lon <= bbox.e,
+    );
+  return inside ? [localUrl, ...OVERPASS_UPSTREAMS] : OVERPASS_UPSTREAMS;
+}
+
+export {
+  overpassPayloadIsData,
+  fetchOverpassPayload,
+  resolveOverpassEndpoints,
+};

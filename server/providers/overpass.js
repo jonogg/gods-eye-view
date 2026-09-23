@@ -17,6 +17,7 @@ import {
 import {
   overpassPayloadIsData,
   fetchOverpassPayload,
+  resolveOverpassEndpoints,
 } from './overpass/transport.js';
 import { installRouteMiddleware } from './places/routes.js';
 
@@ -155,7 +156,9 @@ function overpassProxy({ routing = {} } = {}) {
           return;
         }
         _overpassConcurrent += 1;
-        const requestPromise = fetchOverpassPayload(safeBody)
+        const requestPromise = fetchOverpassPayload(safeBody, undefined, {
+          endpoints: resolveOverpassEndpoints(safeBody),
+        })
           .then((payload) => {
             // Only a 2xx is data. `< 500` cached every 4xx, so one mirror's
             // refusal was written to memory AND disk — and boundary-class
@@ -217,3 +220,4 @@ export { readOverpassDisk } from './overpass/cache.js';
 export { resolveOverpassPreflight } from './overpass/cache.js';
 export { overpassPayloadIsData } from './overpass/transport.js';
 export { fetchOverpassPayload } from './overpass/transport.js';
+export { resolveOverpassEndpoints } from './overpass/transport.js';
