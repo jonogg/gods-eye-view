@@ -125,6 +125,28 @@ export function transitUpstreamHeaders(feed, validators = null) {
 }
 
 /**
+ * The feed as the proxy should fetch it. A keyless feed is returned as-is; a
+ * keyed feed (`keyEnv`) gets its credential header from the SERVER environment,
+ * or null when that key is not configured. The key never lives in the registry,
+ * which the browser also imports.
+ * @param {object} feed Registry entry.
+ * @param {Record<string, string|undefined>} [env] Server environment.
+ * @returns {object|null}
+ */
+export function transitUpstreamFeed(feed, env = {}) {
+  if (!feed?.keyEnv) return feed;
+  const key = env?.[feed.keyEnv];
+  if (typeof key !== 'string' || !key.trim()) return null;
+  return {
+    ...feed,
+    headers: {
+      ...(feed.headers || {}),
+      Authorization: `${feed.keyScheme || 'apikey'} ${key.trim()}`,
+    },
+  };
+}
+
+/**
  * Only https upstreams are fetched.
  * @param {string} url Request or response URL.
  * @returns {boolean}

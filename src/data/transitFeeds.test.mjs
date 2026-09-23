@@ -239,3 +239,24 @@ test('published transit history scope agrees with the catalog capability', () =>
     /four fixes|0\.95x|guaranteed lower|one poll interval behind/,
   );
 });
+
+test('NSW TrainLink splits trains from road coaches by route id', () => {
+  const feed = getTransitFeed('tfnsw-nswtrains');
+  assert.equal(transitModeFor(feed, '4T.T.NT31'), 'rail');
+  assert.equal(transitModeFor(feed, '4T.C.167'), 'bus');
+  assert.equal(transitModeFor(feed, null), 'rail');
+  assert.equal(transitModeResolved(feed, '4T.C.167'), true);
+});
+
+test('Sydney is covered by the TfNSW rail feeds', () => {
+  const ids = transitFeedsInRange(-33.8688, 151.2093).map((f) => f.id);
+  for (const id of [
+    'tfnsw-sydneytrains',
+    'tfnsw-metro',
+    'tfnsw-lightrail-cbd',
+    'tfnsw-lightrail-parramatta',
+    'tfnsw-nswtrains',
+  ]) {
+    assert.ok(ids.includes(id), `${id} in range of Sydney`);
+  }
+});

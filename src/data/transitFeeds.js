@@ -116,12 +116,52 @@ function metroTransitRouteMode(routeId) {
 }
 
 /**
+ * NSW TrainLink publishes its coaches in the same feed as its trains: route
+ * ids are `4T.T.*` for rail and `4T.C.*` for road coaches.
+ * @param {string|null} routeId
+ * @returns {string}
+ */
+function nswTrainLinkRouteMode(routeId) {
+  if (!routeId) return 'unknown';
+  if (/^4T\.T\./.test(routeId)) return 'rail';
+  if (/^4T\.C\./.test(routeId)) return 'bus';
+  return 'unknown';
+}
+
+/**
+ * Transport for NSW Open Data: one API key (free registration) covers every
+ * realtime feed. The key is never in this file — `keyEnv` names the server
+ * environment variable and the proxy adds `Authorization: apikey <key>` at
+ * fetch time (see `transitUpstreamFeed`). Without the key the feed answers 503.
+ */
+const TFNSW_TERMS = Object.freeze({
+  quote:
+    'Unless otherwise stated, the data on the Open Data Hub is licensed under the Creative Commons Attribution 4.0 licence (CC BY 4.0).',
+  note: 'Keyed (free registration, Authorization: apikey header). Free tier allows 60,000 requests/day and 5/s; at the 15 s proxy cache five feeds stay well under it. Fork-only: upstream admits keyless feeds only.',
+});
+
+function tfnswFeed(fields) {
+  return Object.freeze({
+    operator: 'Transport for NSW',
+    license: 'CC BY 4.0',
+    licenseUrl: 'https://opendata.transport.nsw.gov.au/',
+    attribution: 'Transport for NSW (CC BY 4.0)',
+    defaultEnabled: true,
+    keyEnv: 'TFNSW_API_KEY',
+    keyScheme: 'apikey',
+    terms: TFNSW_TERMS,
+    ...fields,
+  });
+}
+
+/**
  * Registry of feeds. Order is presentation order in the stats/credit text.
  * `loadRadiusKm` is the distance from `center` inside which the feed is polled.
  * @type {ReadonlyArray<Readonly<{
  *   id: string, name: string, operator: string, region: string,
  *   center: {lat: number, lon: number}, loadRadiusKm: number,
  *   url: string, headers?: Record<string, string>,
+ *   keyEnv?: string, keyScheme?: string,
  *   license: string, licenseUrl: string, attribution: string,
  *   defaultMode: string, routeMode?: (routeId: string|null) => string,
  * }>>}
@@ -269,6 +309,52 @@ export const TRANSIT_FEED_REGISTRY = Object.freeze([
       note: 'No key, no stated rate limit, no caching rule. Logos and network imagery need separate approval, so the credit is text only.',
     }),
     defaultMode: 'bus',
+  }),
+  tfnswFeed({
+    id: 'tfnsw-sydneytrains',
+    name: 'Sydney Trains',
+    region: 'Sydney & NSW intercity, Australia',
+    center: Object.freeze({ lat: -33.8688, lon: 151.2093 }),
+    loadRadiusKm: 200,
+    url: 'https://api.transport.nsw.gov.au/v2/gtfs/vehiclepos/sydneytrains',
+    defaultMode: 'rail',
+  }),
+  tfnswFeed({
+    id: 'tfnsw-metro',
+    name: 'Sydney Metro',
+    region: 'Sydney, Australia',
+    center: Object.freeze({ lat: -33.8, lon: 151.05 }),
+    loadRadiusKm: 80,
+    url: 'https://api.transport.nsw.gov.au/v2/gtfs/vehiclepos/metro',
+    defaultMode: 'subway',
+  }),
+  tfnswFeed({
+    id: 'tfnsw-nswtrains',
+    name: 'NSW TrainLink',
+    region: 'Regional NSW, Australia',
+    center: Object.freeze({ lat: -32.5, lon: 149.5 }),
+    loadRadiusKm: 1000,
+    url: 'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/nswtrains',
+    defaultMode: 'rail',
+    routeMode: nswTrainLinkRouteMode,
+  }),
+  tfnswFeed({
+    id: 'tfnsw-lightrail-cbd',
+    name: 'Sydney Light Rail',
+    region: 'Sydney CBD & South East, Australia',
+    center: Object.freeze({ lat: -33.89, lon: 151.22 }),
+    loadRadiusKm: 60,
+    url: 'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/lightrail/cbdandsoutheast',
+    defaultMode: 'tram',
+  }),
+  tfnswFeed({
+    id: 'tfnsw-lightrail-parramatta',
+    name: 'Parramatta Light Rail',
+    region: 'Parramatta, Australia',
+    center: Object.freeze({ lat: -33.81, lon: 151.01 }),
+    loadRadiusKm: 60,
+    url: 'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/lightrail/parramatta',
+    defaultMode: 'tram',
   }),
 ]);
 

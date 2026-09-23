@@ -365,3 +365,19 @@ test('client history validates response bounds, epochs and cancellation through 
     { name: 'AbortError' },
   );
 });
+
+test('keyed feeds get their credential from the server env, never from the registry', async () => {
+  const { transitUpstreamFeed } = await import('./transitProxy.js');
+  const feed = getTransitFeed('tfnsw-sydneytrains');
+  assert.ok(feed, 'Sydney Trains is registered and enabled');
+  assert.equal(feed.keyEnv, 'TFNSW_API_KEY');
+  assert.equal(/eyJ[A-Za-z0-9_-]{10,}/.test(JSON.stringify(feed)), false);
+  assert.equal(transitUpstreamFeed(feed, {}), null);
+  assert.equal(transitUpstreamFeed(feed, { TFNSW_API_KEY: '  ' }), null);
+  const upstream = transitUpstreamFeed(feed, { TFNSW_API_KEY: 'k123' });
+  assert.equal(upstream.headers.Authorization, 'apikey k123');
+  assert.equal(upstream.id, feed.id);
+  assert.equal(feed.headers, undefined, 'registry entry is not mutated');
+  const keyless = getTransitFeed('mbta');
+  assert.equal(transitUpstreamFeed(keyless, {}), keyless);
+});

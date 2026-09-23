@@ -27,6 +27,7 @@ import {
   transitCacheState,
   transitRedirectDecision,
   transitResponseHeaders,
+  transitUpstreamFeed,
   transitUpstreamHeaders,
 } from '../data/transitProxy.js';
 
@@ -104,10 +105,13 @@ export async function fetchTransitFeed(
  * re-asked once per poll for a whole session: consecutive failures push the
  * next permitted attempt out to five minutes, and one success resets it.
  *
- * @param {{fetchImpl?: typeof fetch}} [options]
+ * Keyed feeds (`keyEnv`) read their credential from `env`, which the server
+ * entry point passes in; without it they answer 503 `not-configured`.
+ *
+ * @param {{fetchImpl?: typeof fetch, env?: Record<string, string|undefined>}} [options]
  * @returns {{handle: (request: Request) => Promise<Response>, close: () => void}}
  */
-export function createTransitService({ fetchImpl = fetch } = {}) {
+export function createTransitService({ fetchImpl = fetch, env = {} } = {}) {
   /** @type {Map<string, {at:number, body:string, host:string}>} feedId → snapshot */
   const cache = new Map();
   const history = createTransitHistory();
@@ -265,6 +269,24 @@ export function createTransitService({ fetchImpl = fetch } = {}) {
         { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
       );
     }
+    const upstreamFeed = transitUpstreamFeed(feed, env);
+    if (!upstreamFeed) {
+      return reply(
+        503,
+        JSON.stringify({
+          error: 'Transit feed not configured',
+          feedId: feed.id,
+          retryInSec: 3600,
+        }),
+        {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store',
+          'X-GEV-Cache': 'NONE',
+          'Retry-After': '3600',
+          'X-Transit-Backoff': 'not-configured',
+        },
+      );
+    }
     const cached = cache.get(feed.id);
     const state = transitCacheState(cached, now);
     if (state === 'fresh') {
@@ -321,7 +343,7 @@ export function createTransitService({ fetchImpl = fetch } = {}) {
     }
 
     const request = coalesceProxyRequest(inFlight, feed.id, () =>
-      refresh(feed, now),
+      refresh(upstreamFeed, now),
     );
     try {
       const fresh = await request.promise;
