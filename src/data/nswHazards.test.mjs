@@ -116,11 +116,33 @@ test('normalizes a feature into a display record', () => {
 });
 
 test('closures are detected from periods or closed lanes', () => {
+  // closureType is ROAD_CLOSURE on every period, so it alone means nothing.
+  const affected = normalizeNswHazard(
+    feature({}, { periods: [{ closureType: 'ROAD_CLOSURE', roadextent: 'Affected' }] }),
+    'roadwork',
+  );
+  assert.equal(affected.closure, false);
   const byPeriod = normalizeNswHazard(
-    feature({}, { periods: [{ closureType: 'ROAD_CLOSURE' }] }),
+    feature(
+      {},
+      {
+        periods: [
+          {
+            closureType: 'ROAD_CLOSURE',
+            roadextent: 'Closed',
+            direction: 'Both directions',
+            fromDay: 'Mon',
+            toDay: 'Fri',
+            startTime: '8pm',
+            finishTime: '5am',
+          },
+        ],
+      },
+    ),
     'roadwork',
   );
   assert.equal(byPeriod.closure, true);
+  assert.deepEqual(byPeriod.schedule, ['Mon to Fri 8pm to 5am: Closed (Both directions)']);
   const byLane = normalizeNswHazard(
     feature(
       {},
@@ -156,4 +178,20 @@ test('a malformed feed never replaces good data', () => {
     'incident',
   );
   assert.equal(rows.length, 1);
+});
+
+test('map labels, colours and cards read the record', async () => {
+  const { hazardLabel, hazardColour, hazardCard } = await import(
+    '../layers/nswHazards/model.js'
+  );
+  const crash = normalizeNswHazard(feature(), 'incident');
+  assert.equal(hazardLabel(crash), 'CRASH · George Street');
+  assert.equal(hazardColour(crash), '#ff3b3b');
+  const card = hazardCard(crash, 1790000600000 + 5 * 60_000);
+  assert.equal(card.title, 'CRASH');
+  assert.ok(card.lines.includes('Expected delay: 15 min'));
+  assert.ok(card.lines.some((l) => l.includes('updated 5 min ago')));
+  const works = { ...crash, feed: 'roadwork', closure: true };
+  assert.equal(hazardLabel(works), 'CLOSED · ROADWORK · George Street');
+  assert.ok(hazardCard(works).lines.includes('Road closed at scheduled times'));
 });

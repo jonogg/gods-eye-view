@@ -80,10 +80,16 @@ function ago(ms, now) {
  */
 export function hazardCard(row, now = Date.now()) {
   const lines = [];
-  if (row?.closure) lines.push('Road closed');
+  if (row?.closure)
+    lines.push(
+      row.feed === 'roadwork'
+        ? 'Road closed at scheduled times'
+        : 'Road closed',
+    );
   if (Number.isFinite(row?.delayMin))
     lines.push(`Expected delay: ${row.delayMin} min`);
   for (const advice of row?.advice || []) lines.push(advice);
+  for (const period of row?.schedule || []) lines.push(`• ${period}`);
   if (row?.detail) lines.push(row.detail);
   const stamps = [];
   if (row?.planned) stamps.push('Planned');

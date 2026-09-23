@@ -17,7 +17,7 @@ export { createNswHazardSource } from './source.js';
 
 const LAYER_ID = 'nsw-hazards';
 /** Labels only when zoomed in enough to read a street, so the state view stays clean. */
-const LABEL_RANGE_M = 45_000;
+const LABEL_RANGE_M = 9_000;
 /** Point markers stay visible out to a whole-of-NSW view. */
 const POINT_RANGE_M = 2_500_000;
 
@@ -33,7 +33,7 @@ function createCard() {
     width: 'min(340px, calc(100vw - 32px))',
     maxHeight: '45vh',
     overflowY: 'auto',
-    zIndex: '60',
+    zIndex: '2000',
     padding: '12px 14px',
     background: 'rgba(6, 14, 20, 0.92)',
     border: '1px solid rgba(80, 200, 255, 0.45)',

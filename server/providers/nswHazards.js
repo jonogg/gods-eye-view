@@ -108,15 +108,16 @@ export function decodeNswPolyline(encoded) {
   return points;
 }
 
-/** Whether any period or lane entry marks the road as fully closed. */
+/**
+ * Whether the road itself is closed. The feed's `closureType` is
+ * `ROAD_CLOSURE` on every period (including works that only affect traffic),
+ * so it carries no signal; `roadextent: "Closed"` on a period, or a closed
+ * impacted-lane entry on an incident, does.
+ */
 function isClosure(props) {
   const periods = Array.isArray(props.periods) ? props.periods : [];
   if (
-    periods.some(
-      (p) =>
-        p?.closureType === 'ROAD_CLOSURE' ||
-        String(p?.roadextent || '').toLowerCase() === 'closed',
-    )
+    periods.some((p) => String(p?.roadextent || '').toLowerCase() === 'closed')
   )
     return true;
   const roads = Array.isArray(props.roads) ? props.roads : [];
@@ -125,6 +126,32 @@ function isClosure(props) {
       (l) => String(l?.extent || '').toLowerCase() === 'closed',
     ),
   );
+}
+
+/** Scheduled-period lines, e.g. "Mon to Fri 8pm to 5am: Closed (Both directions)". */
+function periodLines(props) {
+  const periods = Array.isArray(props.periods) ? props.periods : [];
+  return periods
+    .slice(0, 6)
+    .map((p) => {
+      const from = clean(p?.fromDay, 20);
+      const to = clean(p?.toDay, 20);
+      const start = clean(p?.startTime, 20);
+      const finish = clean(p?.finishTime, 20);
+      const extent = clean(p?.roadextent, 30);
+      const direction = clean(p?.direction, 40);
+      const when = [
+        from && to ? `${from} to ${to}` : from,
+        start && finish ? `${start} to ${finish}` : start,
+      ]
+        .filter(Boolean)
+        .join(' ');
+      const what = [extent, direction ? `(${direction})` : '']
+        .filter(Boolean)
+        .join(' ');
+      return clean([when, what].filter(Boolean).join(': '), 120);
+    })
+    .filter(Boolean);
 }
 
 /** Human location line, e.g. "Putty Road between Colo Heights and Mellong, Colo Heights". */
@@ -192,6 +219,7 @@ export function normalizeNswHazard(feature, feed) {
       .map((a) => clean(a, 80))
       .filter(Boolean),
     detail: plainText(props.otherAdvice),
+    schedule: periodLines(props),
     delayMin: Number.isFinite(delay) && delay > 0 ? delay : null,
     created: epochMs(props.created),
     updated: epochMs(props.lastUpdated),
