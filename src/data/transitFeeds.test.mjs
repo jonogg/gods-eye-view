@@ -255,6 +255,7 @@ test('Sydney is covered by the TfNSW rail feeds', () => {
     'tfnsw-metro',
     'tfnsw-lightrail-cbd',
     'tfnsw-lightrail-parramatta',
+    'tfnsw-lightrail-innerwest',
     'tfnsw-nswtrains',
   ]) {
     assert.ok(ids.includes(id), `${id} in range of Sydney`);

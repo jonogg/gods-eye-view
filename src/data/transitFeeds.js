@@ -1,7 +1,9 @@
 /**
  * @module transitFeeds
- * @description Registry of keyless, openly licensed GTFS-Realtime
- * VehiclePositions feeds the Transit layer can show.
+ * @description Registry of openly licensed GTFS-Realtime
+ * VehiclePositions feeds the Transit layer can show. Upstream admits keyless
+ * feeds only; this fork also admits keyed feeds via `keyEnv` (Transport for
+ * NSW), whose credential the server adds at fetch time.
  *
  * Every entry here is a URL the SERVER fetches — the browser only ever asks
  * `/api/transit/vehicles/<id>` for a registered id (see SECURITY.md: proxies
@@ -11,6 +13,8 @@
  * Admission rules for a feed:
  *  - No key, token, or registration required (identify-yourself headers are
  *    fine — Entur asks for `ET-Client-Name`, OVapi for a User-Agent).
+ *    Fork exception: a feed may name a server env var in `keyEnv`; the key
+ *    never appears here and the proxy answers 503 when it is not set.
  *  - An open license that permits display with attribution.
  *  - Real coordinates in VehiclePosition.position — NYCT subway, for example,
  *    publishes stop-relative positions only and is deliberately absent.
@@ -354,6 +358,25 @@ export const TRANSIT_FEED_REGISTRY = Object.freeze([
     center: Object.freeze({ lat: -33.81, lon: 151.01 }),
     loadRadiusKm: 60,
     url: 'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/lightrail/parramatta',
+    defaultMode: 'tram',
+  }),
+  tfnswFeed({
+    id: 'tfnsw-lightrail-innerwest',
+    name: 'Inner West Light Rail',
+    region: 'Sydney Inner West, Australia',
+    center: Object.freeze({ lat: -33.875, lon: 151.16 }),
+    loadRadiusKm: 60,
+    // Inner West is on v2 only; v1 answers 404.
+    url: 'https://api.transport.nsw.gov.au/v2/gtfs/vehiclepos/lightrail/innerwest',
+    defaultMode: 'tram',
+  }),
+  tfnswFeed({
+    id: 'tfnsw-lightrail-newcastle',
+    name: 'Newcastle Light Rail',
+    region: 'Newcastle, Australia',
+    center: Object.freeze({ lat: -32.927, lon: 151.77 }),
+    loadRadiusKm: 60,
+    url: 'https://api.transport.nsw.gov.au/v1/gtfs/vehiclepos/lightrail/newcastle',
     defaultMode: 'tram',
   }),
 ]);
